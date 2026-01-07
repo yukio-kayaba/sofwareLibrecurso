@@ -11,6 +11,7 @@ export class ReposController{
             CustomResponse.badRequest({res,error:"No tienes permisos"});
             return
         }
+
         const [error , createDto ] = CreateRepositorioDto.createRepositorio(req.body);
 
         if(error !== undefined || createDto === undefined ){
@@ -18,7 +19,7 @@ export class ReposController{
             return;
         }
         const repositorio = new ReposGetAllUseCase();
-        repositorio.create(createDto,req.authpayload.idusuario).then(data =>{
+        repositorio.create(createDto,req.authpayload.id).then(data =>{
             CustomResponse.success({res,data});
         }).catch(error =>{
             CustomResponse.badRequest({res,error})
@@ -46,18 +47,14 @@ export class ReposController{
             CustomResponse.badRequest({res,error:"Es olbigatorio el ID"})
             return
         }
-        const reposId = new ReposGetAllUseCase();
-        const idUser = Number(req.authpayload.idusuario);
-        console.log(`idRepos:  ${idRepos}  - idUser : ${idUser}`);
 
-        reposId
-          .getBiId(idUser, idRepos)
-          .then((data) => {
-            CustomResponse.success({ res, data });
-          })
-          .catch((error) => {
-            CustomResponse.badRequest({ res, error });
-          });
+        const reposId = new ReposGetAllUseCase();
+        
+        reposId.getBiId(req.authpayload.id,idRepos).then(data =>{
+            CustomResponse.success({res,data});
+        }).catch(error=>{
+            CustomResponse.badRequest({res,error});
+        })
     }
 
     unirseGroup = ( req:Request,res:Response)=>{
@@ -82,7 +79,7 @@ export class ReposController{
 
         const reposAdd = new ReposGetAllUseCase();
 
-        reposAdd.unirseRepo(req.authpayload.idusuario,idRepositorio,body.contra).then(data =>{
+        reposAdd.unirseRepo(req.authpayload.id,idRepositorio,body.contra).then(data =>{
             CustomResponse.success({res,data})
         }).catch(error =>{
             CustomResponse.badRequest({res,error})

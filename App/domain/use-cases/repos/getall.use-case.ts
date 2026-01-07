@@ -12,8 +12,7 @@ export default class ReposGetAllUseCase {
       repositorios.idrepo,
       repositorios.nombrerepo,
       repositorios.descripcion,
-    ]).from(repositorios())
-    .where(eq(repositorios.estado, 1)).execute();
+    ]).from(repositorios()).where(eq(repositorios.estado, true)).execute();
 
     return resultado;
   }
@@ -25,8 +24,6 @@ export default class ReposGetAllUseCase {
       from(repositorios())
       .where(AND(eq(repositorios.idrepo, idrepo), eq(repositorios.idcreador, idUser)))
       .execute()
-
-    console.log(verifyAcceso);
 
     let selectFields = [repositorios.idrepo,
     repositorios.nombrerepo,
@@ -47,7 +44,7 @@ export default class ReposGetAllUseCase {
     const resultado = await DB.Select(selectFields)
       .from(repositorios())
       .innerJOIN(usuarios(), eq(usuarios.idusuario, repositorios.idcreador, true))
-      //.where(eq(repositorios.idrepo, idrepo))
+      .where(eq(repositorios.idrepo, idrepo))
       .execute()
 
     if(!resultado ){
@@ -88,6 +85,7 @@ export default class ReposGetAllUseCase {
 
   async create(data:CreateRepositorioDto,idUser:number){
     const { repositorios } = generateTables() ;
+    
     const responses = await DB.Insert(repositorios(),[ 
       repositorios.idcreador,
       repositorios.nombrerepo,
@@ -107,7 +105,6 @@ export default class ReposGetAllUseCase {
       data.orgdata,
       data.contrarepo
     ]).execute()
-
 
     if(!responses){
       throw CustomError.badRequest("Error al momento de crear")

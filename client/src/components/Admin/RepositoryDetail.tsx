@@ -8,7 +8,7 @@ import {
   updateUserPermissions
 } from '../../services/dataService'
 import { apiService } from '../../services/api'
-import { Repository } from '../../types'
+import { Repository, UserPermissions } from '../../types'
 import './RepositoryDetail.css'
 
 const RepositoryDetail = () => {
