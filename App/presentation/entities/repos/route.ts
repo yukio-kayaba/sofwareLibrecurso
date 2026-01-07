@@ -11,6 +11,10 @@ export class ReposRoutes{
 
         router.get("/:id",reposController.getById);
 
+        router.post("/",reposController.create);
+
+        router.post("/addteam", reposController.unirseGroup);
+
         return router;
     }
 }

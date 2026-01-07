@@ -32,9 +32,9 @@ class ApiService {
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`
     
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...options.headers as Record<string, string>,
     }
 
     if (this.token) {
@@ -148,6 +148,39 @@ class ApiService {
     return this.request<any>(`/repos/${repositoryId}/requests/${requestId}/reject`, {
       method: 'POST',
     })
+  }
+
+  async downloadInstaller(repositoryId: number) {
+    const url = `${this.baseURL}/installer/${repositoryId}`;
+    const headers: HeadersInit = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Error al descargar instalador');
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `install_repo_${repositoryId}.sh`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Download Error:', error);
+      throw error;
+    }
   }
 }
 

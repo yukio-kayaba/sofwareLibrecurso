@@ -4,7 +4,7 @@
     "main": "index.js",
     "type": "module",
     "scripts": {
-        "dev": "nodemon",
+        "dev": "tsx watch ./index.ts",
         "build": "tsc",
         "BD:create": "node --loader ts-node/esm ./commands/createTableSql.ts",
         "BD:delete": "node --loader ts-node/esm ./commands/deleteTables.ts",

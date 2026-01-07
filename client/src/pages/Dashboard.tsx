@@ -1,10 +1,10 @@
 import { Routes, Route, NavLink } from 'react-router-dom'
 import Layout from '../components/Layout/Layout'
-import MyRepositories from '../components/MyRepositories'
+import MyRepositories from '../components/Collaborator/MyRepositories'
 import CreateRepository from '../components/CreateRepository'
-import RepositoryDetail from '../components/RepositoryDetail'
-import RepositoryExplorer from '../components/RepositoryExplorer'
-import Profile from '../components/Profile'
+import RepositoryDetail from '../components/Admin/RepositoryDetail'
+import RepositoryExplorer from '../components/Collaborator/RepositoryExplorer'
+import Profile from '../components/Collaborator/CollaboratorProfile'
 import './Dashboard.css'
 
 const Dashboard = () => {

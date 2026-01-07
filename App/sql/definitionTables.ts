@@ -36,8 +36,14 @@ export function generateTables(){
       iddatalinux:int().Pk().$(),
       nombredata:varchar(200).Required().$(),
       variables:varchar(300).Required().$(),
-      contenido:varchar(1000).Required().$()
+      contenido:varchar(5000).Required().$()
     }),
+    repositorio_datalinux: defineTable("repositorio_datalinux", {
+      id: int().Pk().$(),
+      idrepositorio: int().Required().$(), // FK a repositorios
+      iddatalinux: int().Required().$(),   // FK a datalinux
+      orden: int().Required().Default(1).$()
+    })
 
   }
 }

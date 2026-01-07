@@ -36,4 +36,20 @@ export class CustomError extends Error {
       status: ResponseStatus.error,
     });
   }
+
+  static unauthorized(message: string) {
+    return new CustomError({
+      statusCode: 401,
+      message,
+      status: ResponseStatus.fail,
+    });
+  }
+
+  static notFound(message: string) {
+    return new CustomError({
+      statusCode: 404,
+      message,
+      status: ResponseStatus.fail,
+    });
+  }
 }

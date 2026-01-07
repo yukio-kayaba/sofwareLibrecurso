@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import React from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { 
-  getRepositoryById, 
-  getRepositoryFiles, 
+import {
+  getRepositoryById,
+  getRepositoryFiles,
   getUserRepositoryPermissions,
   getFileById
 } from '../../services/dataService'
+import { apiService } from '../../services/api'
 import { Repository, FileItem } from '../../types'
 import './RepositoryExplorer.css'
 
@@ -14,7 +15,7 @@ const RepositoryExplorer = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const currentUserId = '1' // Simulado - en producción vendría del contexto
-  
+
   const [repository, setRepository] = useState<Repository | null>(null)
   const [currentPath, setCurrentPath] = useState<string[]>([])
   const [currentFiles, setCurrentFiles] = useState<FileItem[]>([])
@@ -28,7 +29,7 @@ const RepositoryExplorer = () => {
         setRepository(repo)
         const userPerms = getUserRepositoryPermissions(id, currentUserId)
         setPermissions(userPerms)
-        
+
         if (userPerms && userPerms.canRead) {
           loadFiles(undefined)
         }
@@ -36,6 +37,19 @@ const RepositoryExplorer = () => {
       setLoading(false)
     }
   }, [id, currentUserId])
+
+  const handleDownloadInstaller = async () => {
+    if (id && permissions?.canDownload) {
+      try {
+        await apiService.downloadInstaller(Number(id));
+      } catch (error) {
+        alert('Error al descargar instalador');
+        console.error(error);
+      }
+    } else {
+      alert("No tienes permiso para descargar el instalador");
+    }
+  }
 
   const loadFiles = (parentId?: string) => {
     if (id) {
@@ -136,21 +150,26 @@ const RepositoryExplorer = () => {
           ← Volver
         </button>
         <div>
-          <h2 className="page-title">{repository.name}</h2>
+          <h2 className="page-title">{repository.nombrerepo}</h2>
           <p className="page-subtitle">Explorador de archivos</p>
         </div>
+        {permissions.canDownload && (
+          <button className="btn-primary download-installer-btn" style={{ marginLeft: 'auto' }} onClick={handleDownloadInstaller}>
+            ⬇️ Descargar Instalador
+          </button>
+        )}
       </div>
 
       <div className="explorer-content">
         <div className="breadcrumb">
-          <button 
+          <button
             className="breadcrumb-item"
             onClick={() => {
               setCurrentPath([])
               loadFiles(undefined)
             }}
           >
-            📁 {repository.name}
+            📁 {repository.nombrerepo}
           </button>
           {breadcrumbs.map((crumb) => (
             <React.Fragment key={crumb.id}>

@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { 
-  getRepositoryById, 
-  getRepositoryUsers, 
+import {
+  getRepositoryById,
+  getRepositoryUsers,
   toggleUserPermission,
   removeUserFromRepository,
   updateUserPermissions
 } from '../../services/dataService'
+import { apiService } from '../../services/api'
 import { Repository, UserPermissions } from '../../types'
 import './RepositoryDetail.css'
 
@@ -28,6 +29,17 @@ const RepositoryDetail = () => {
       setLoading(false)
     }
   }, [id])
+
+  const handleDownloadInstaller = async () => {
+    if (id) {
+      try {
+        await apiService.downloadInstaller(Number(id));
+      } catch (error) {
+        alert('Error al descargar instalador');
+        console.error(error);
+      }
+    }
+  }
 
   const handleTogglePermission = (userId: string, currentEnabled: boolean) => {
     if (id) {
@@ -97,39 +109,36 @@ const RepositoryDetail = () => {
           ← Volver
         </button>
         <div>
-          <h2 className="page-title">{repository.name}</h2>
+          <h2 className="page-title">{repository.nombrerepo}</h2>
           <p className="page-subtitle">Gestiona los usuarios de este repositorio</p>
         </div>
+        <button className="btn-primary download-installer-btn" style={{ marginLeft: 'auto' }} onClick={handleDownloadInstaller}>
+          ⬇️ Descargar Instalador
+        </button>
       </div>
 
       <div className="repository-info-card">
         <h3>Información del Repositorio</h3>
         <div className="info-grid">
           <div className="info-item">
-            <span className="info-label">PC / Hostname</span>
-            <span className="info-value">{repository.pc}</span>
+            <span className="info-label">Dominio</span>
+            <span className="info-value">{repository.dominio}</span>
           </div>
           <div className="info-item">
             <span className="info-label">Dirección IP</span>
-            <span className="info-value">{repository.ip}</span>
+            <span className="info-value">{repository.ipdata}</span>
           </div>
           <div className="info-item">
-            <span className="info-label">Tipo de Conexión</span>
-            <span className={`connection-badge ${repository.connectionType.toLowerCase()}`}>
-              {repository.connectionType}
-            </span>
-          </div>
-          <div className="info-item">
-            <span className="info-label">Máscara</span>
-            <span className="info-value">{repository.mask}</span>
+            <span className="info-label">Puerto</span>
+            <span className="info-value">{repository.portdata}</span>
           </div>
           <div className="info-item">
             <span className="info-label">Organización</span>
-            <span className="info-value">{repository.org}</span>
+            <span className="info-value">{repository.orgdata}</span>
           </div>
           <div className="info-item">
             <span className="info-label">Fecha de Creación</span>
-            <span className="info-value">{new Date(repository.createdAt).toLocaleDateString()}</span>
+            <span className="info-value">{new Date(repository.fechacreacion).toLocaleDateString()}</span>
           </div>
         </div>
       </div>
@@ -165,12 +174,12 @@ const RepositoryDetail = () => {
                     <td>
                       <div className="user-cell">
                         <div className="user-avatar-small">
-                          {repoUser.user.name.charAt(0)}
+                          {repoUser.user.nombrecompleto && repoUser.user.nombrecompleto.charAt(0)}
                         </div>
-                        <span>{repoUser.user.name}</span>
+                        <span>{repoUser.user.nombrecompleto}</span>
                       </div>
                     </td>
-                    <td>{repoUser.user.email}</td>
+                    <td>{repoUser.user.correo}</td>
                     <td>{new Date(repoUser.joinedAt).toLocaleDateString()}</td>
                     <td>
                       <span className={`status-badge ${repoUser.enabled ? 'enabled' : 'disabled'}`}>
@@ -233,4 +242,3 @@ const RepositoryDetail = () => {
 }
 
 export default RepositoryDetail
-

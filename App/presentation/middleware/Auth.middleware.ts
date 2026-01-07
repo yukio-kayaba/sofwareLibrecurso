@@ -1,8 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import { CustomResponse } from "../../core/res/custom.response.js";
 import { JWTadapter } from "../../core/config/AccessToken.js";
-import { JsonWebTokenError } from "jsonwebtoken";
-
+import jwt from "jsonwebtoken";
+const { JsonWebTokenError } = jwt
 
 export class AuthMiddleware {
   private static handleAuthError(res: Response) {

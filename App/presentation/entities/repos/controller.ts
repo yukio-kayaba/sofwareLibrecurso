@@ -1,11 +1,32 @@
 import { Request, Response } from "express";
 import ReposGetAllUseCase from "../../../domain/use-cases/repos/getall.use-case.js";
 import { CustomResponse } from "../../../core/res/custom.response.js";
+import { CreateRepositorioDto } from "../../../domain/dto/repos/createRepos.dto.js";
 
 
 export class ReposController{
     
-    getall(req:Request,res:Response){
+    create = (req:Request,res:Response) =>{
+        if(req.authpayload === undefined){
+            CustomResponse.badRequest({res,error:"No tienes permisos"});
+            return
+        }
+
+        const [error , createDto ] = CreateRepositorioDto.createRepositorio(req.body);
+
+        if(error !== undefined || createDto === undefined ){
+            CustomResponse.badRequest({res,error});
+            return;
+        }
+        const repositorio = new ReposGetAllUseCase();
+        repositorio.create(createDto,req.authpayload.id).then(data =>{
+            CustomResponse.success({res,data});
+        }).catch(error =>{
+            CustomResponse.badRequest({res,error})
+        })
+    }
+
+    getall = (req:Request,res:Response)=>{
         const repos = new ReposGetAllUseCase();
         repos.getAll().then(data=>{
             CustomResponse.success({res,data})  
@@ -14,9 +35,55 @@ export class ReposController{
         })
     }
 
-    getById(req:Request,res:Response){
-        const id = req.params;
-        console.log(req.params);
+    getById = (req:Request,res:Response)=>{
+        if(req.authpayload === undefined){
+            CustomResponse.badRequest({res,error:"No tienes permisos"});
+            return
+        }
+
+        const idRepos = Number(req.params.id);
+
+        if(!idRepos){
+            CustomResponse.badRequest({res,error:"Es olbigatorio el ID"})
+            return
+        }
+
+        const reposId = new ReposGetAllUseCase();
+        
+        reposId.getBiId(req.authpayload.id,idRepos).then(data =>{
+            CustomResponse.success({res,data});
+        }).catch(error=>{
+            CustomResponse.badRequest({res,error});
+        })
+    }
+
+    unirseGroup = ( req:Request,res:Response)=>{
+        if(req.authpayload === undefined){
+            CustomResponse.badRequest({res,error:"No tienes permisos"})
+            return
+        }
+
+        const body = req.body;
+
+        if(!body.idRepositorio || !body.contra ){
+            CustomResponse.badRequest({res,error:"el idRepositorio y la contra son obligatorios"
+            });
+            return
+        }
+
+        const idRepositorio = Number(body.idRepositorio);
+        
+        if(!idRepositorio){
+            CustomResponse.badRequest({res,error:"Error de ID"})
+        }
+
+        const reposAdd = new ReposGetAllUseCase();
+
+        reposAdd.unirseRepo(req.authpayload.id,idRepositorio,body.contra).then(data =>{
+            CustomResponse.success({res,data})
+        }).catch(error =>{
+            CustomResponse.badRequest({res,error})
+        })
     }
 
 }

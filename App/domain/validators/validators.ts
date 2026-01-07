@@ -34,4 +34,8 @@ export class Validator {
     /^\+? ?[\d]+(?:[- ][\d]+)*$/.test(val);
 
   static containsIvalidCharacters = (val: string) => /[\\/:*?"<>|]/.test(val);
+
+  static isValidIp = (val:string) => 
+    /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/.test(val);
+
 }

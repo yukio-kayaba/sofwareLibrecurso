@@ -10,7 +10,8 @@ async function generarTablas(){
     datalinux,
     repositorios,
     permisos,
-    usuarios
+    usuarios,
+    repositorio_datalinux
   } = generateTables();
 
   
@@ -21,6 +22,8 @@ async function generarTablas(){
   await generateTable(datalinux(),datalinux.$columns);
 
   await generateTable(repositorios(),repositorios.$columns);
+
+  await generateTable(repositorio_datalinux(), repositorio_datalinux.$columns);
 
 }
 
