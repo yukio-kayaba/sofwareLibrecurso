@@ -1,0 +1,55 @@
+.admin-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.admin-nav {
+  display: flex;
+  gap: 0.5rem;
+  background: var(--surface);
+  padding: 0.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 8px var(--shadow);
+  flex-wrap: wrap;
+}
+
+.nav-link {
+  padding: 0.75rem 1.5rem;
+  text-decoration: none;
+  color: var(--text-secondary);
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.nav-link:hover {
+  color: var(--primary-blue);
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.nav-link.active {
+  color: var(--primary-blue);
+  background: rgba(37, 99, 235, 0.1);
+  font-weight: 600;
+}
+
+.admin-content {
+  background: var(--surface);
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 2px 8px var(--shadow);
+  min-height: 500px;
+}
+
+@media (max-width: 768px) {
+  .admin-nav {
+    flex-direction: column;
+  }
+  
+  .admin-content {
+    padding: 1.5rem;
+  }
+}
+

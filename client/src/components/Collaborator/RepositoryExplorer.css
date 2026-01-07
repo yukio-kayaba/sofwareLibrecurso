@@ -1,0 +1,201 @@
+.repository-explorer {
+  width: 100%;
+}
+
+.explorer-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.explorer-content {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 2rem;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.breadcrumb-item {
+  background: none;
+  border: none;
+  color: var(--primary-blue);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.breadcrumb-item:hover {
+  background: rgba(37, 99, 235, 0.1);
+}
+
+.breadcrumb-separator {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.files-container {
+  width: 100%;
+}
+
+.files-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.files-table thead {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);
+}
+
+.files-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--border);
+}
+
+.files-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.files-table tbody tr:hover {
+  background: rgba(37, 99, 235, 0.02);
+}
+
+.files-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+}
+
+.file-item:hover {
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.file-icon {
+  font-size: 1.25rem;
+}
+
+.file-name {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.btn-download {
+  background: var(--primary-blue);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-download:hover:not(.disabled) {
+  background: var(--primary-blue-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--shadow);
+}
+
+.btn-download.disabled {
+  background: var(--border);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.empty-folder {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--text-secondary);
+}
+
+.empty-folder .empty-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.loading {
+  text-align: center;
+  padding: 4rem;
+  color: var(--text-secondary);
+  font-size: 1.25rem;
+}
+
+.error-state {
+  text-align: center;
+  padding: 4rem;
+}
+
+.error-state h2 {
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.error-state p {
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+}
+
+.btn-primary {
+  background: var(--primary-blue);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 1rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: var(--primary-blue-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--shadow);
+}
+
+@media (max-width: 768px) {
+  .explorer-header {
+    flex-direction: column;
+  }
+  
+  .files-table {
+    font-size: 0.875rem;
+  }
+  
+  .files-table th,
+  .files-table td {
+    padding: 0.75rem 0.5rem;
+  }
+}
+
