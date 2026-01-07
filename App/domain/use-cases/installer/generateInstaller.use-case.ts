@@ -58,16 +58,39 @@ export default class GenerateInstallerUseCase {
 
         // 4. Construir el Script
         let script = `#!/bin/bash\n\n`;
+        script += `set -e  # Salir si hay algún error\n\n`;
+        script += `# ============================================\n`;
+        script += `# CONFIGURACIÓN GENERADA AUTOMÁTICAMENTE\n`;
+        script += `# Repositorio ID: ${idRepo}\n`;
+        script += `# Generado: ${new Date().toISOString()}\n`;
+        script += `# ============================================\n\n`;
         
-        script += `# --- CONFIGURACIÓN GENERADA AUTOMÁTICAMENTE ---\n`;
+        // Variables principales del repositorio
+        script += `# Variables de configuración principal\n`;
         script += `DOMAIN="${repoData.dominio}"\n`;
         script += `ORG="${repoData.orgdata}"\n`;
-        script += `IP="${repoData.ipdata}"\n`; // Estandarizamos a IP genérico o LDAP_SERVER_IP según uso
+        script += `IP="${repoData.ipdata}"\n`;
         script += `PORT="${repoData.portdata}"\n`;
         script += `ADMIN_PW="${repoData.contrarepo}"\n`;
         
-        // Variables derivadas o específicas
-        script += `BASE_DN="dc=${repoData.orgdata},dc=org" # Ejemplo derivada\n`;
+        // Variables derivadas
+        const domainParts = repoData.dominio.split('.').filter(p => p);
+        const baseDN = domainParts.length > 0 
+            ? domainParts.map(p => `dc=${p}`).join(',')
+            : `dc=${repoData.orgdata},dc=org`;
+        
+        script += `BASE_DN="${baseDN}"\n`;
+        
+        // Variables adicionales con valores por defecto
+        script += `\n# Variables adicionales (pueden ser sobrescritas)\n`;
+        script += `MASK="${process.env.DEFAULT_MASK || '24'}"\n`; // /24 = 255.255.255.0
+        script += `GATEWAY="${process.env.DEFAULT_GATEWAY || ''}"\n`;
+        script += `DNS1="${process.env.DEFAULT_DNS1 || '8.8.8.8'}"\n`;
+        script += `DNS2="${process.env.DEFAULT_DNS2 || '8.8.4.4'}"\n`;
+        script += `INTERFACE=""\n`; // Se detectará automáticamente
+        script += `HOSTNAME=""\n`; // Opcional
+        script += `TIMEZONE="${process.env.DEFAULT_TIMEZONE || 'UTC'}"\n`;
+        
         script += `\n# --- FIN CONFIGURACIÓN ---\n\n`;
 
         // Añadir templates

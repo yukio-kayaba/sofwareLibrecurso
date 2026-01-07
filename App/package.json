@@ -6,9 +6,10 @@
     "scripts": {
         "dev": "tsx watch ./index.ts",
         "build": "tsc",
-        "BD:create": "node --loader ts-node/esm ./commands/createTableSql.ts",
-        "BD:delete": "node --loader ts-node/esm ./commands/deleteTables.ts",
-        "BD:reset": "node --loader ts-node/esm ./commands/resetDataSql.ts"
+        "BD:create": "tsx ./commands/createTableSql.ts",
+        "BD:delete": "tsx ./commands/deleteTables.ts",
+        "BD:reset": "tsx ./commands/resetDataSql.ts",
+        "BD:init-templates": "tsx ./commands/initTemplates.ts"
     },
     "keywords": [],
     "author": "",
