@@ -25,12 +25,30 @@ const CreateRepository = () => {
     setIsLoading(true)
 
     try {
-      const response = await apiService.createRepository(formData)
+      // Asegurar que descripcion esté presente (puede ser string vacío)
+      const dataToSend = {
+        nombrerepo: formData.nombrerepo,
+        descripcion: formData.descripcion || '',
+        ipdata: formData.ipdata,
+        portdata: formData.portdata,
+        dominio: formData.dominio,
+        orgdata: formData.orgdata,
+        contrarepo: formData.contrarepo
+      }
+      
+      console.log('Datos a enviar:', dataToSend)
+      
+      const response = await apiService.createRepository(dataToSend)
+      console.log('Respuesta del backend:', response)
+      
       if (response.data) {
         alert('Repositorio creado exitosamente')
         navigate('/')
+      } else {
+        setError('No se recibió respuesta del servidor')
       }
     } catch (err: any) {
+      console.error('Error al crear repositorio:', err)
       setError(err.message || 'Error al crear el repositorio')
     } finally {
       setIsLoading(false)

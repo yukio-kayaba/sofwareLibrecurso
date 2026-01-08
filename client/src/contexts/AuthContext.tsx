@@ -22,27 +22,82 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Verificar si hay token guardado
     const savedToken = localStorage.getItem('auth_token')
     const savedUser = localStorage.getItem('auth_user')
-    
-    if (savedToken && savedUser) {
-      setToken(savedToken)
-      setUser(JSON.parse(savedUser))
-      apiService.setToken(savedToken)
+
+    // Limpiar valores inválidos del localStorage
+    if (savedUser === 'undefined' || savedUser === 'null' || savedUser === null) {
+      localStorage.removeItem('auth_user')
     }
+
+    if (savedToken && savedToken !== 'undefined' && savedToken !== 'null') {
+      setToken(savedToken)
+      apiService.setToken(savedToken)
+
+      // Solo parsear si savedUser existe y es válido
+      if (savedUser && savedUser !== 'undefined' && savedUser !== 'null') {
+        try {
+          const parsedUser = JSON.parse(savedUser)
+          // Verificar que el objeto parseado sea válido
+          if (parsedUser && typeof parsedUser === 'object') {
+            setUser(parsedUser)
+          } else {
+            localStorage.removeItem('auth_user')
+          }
+        } catch (error) {
+          console.error('Error al parsear usuario guardado:', error)
+          // Si hay error, limpiar el localStorage
+          localStorage.removeItem('auth_user')
+        }
+      }
+    } else if (savedToken === 'undefined' || savedToken === 'null') {
+      // Limpiar token inválido
+      localStorage.removeItem('auth_token')
+    }
+
     setIsLoading(false)
   }, [])
 
   const login = async (usuario: string, password: string) => {
     try {
       const response = await apiService.login(usuario, password)
+      console.log('Respuesta del login:', response)
+
       if (response.data) {
-        const { token: newToken, user: userData } = response.data
-        setToken(newToken)
-        setUser(userData)
-        apiService.setToken(newToken)
-        localStorage.setItem('auth_token', newToken)
-        localStorage.setItem('auth_user', JSON.stringify(userData))
+        // El backend retorna { tokenZ } dentro de data
+        const newToken = response.data.token || response.data.tokenZ
+        const userData = response.data.user || null
+
+        console.log('Token recibido:', newToken ? 'Sí' : 'No')
+        console.log('User data recibido:', userData ? 'Sí' : 'No')
+
+        if (newToken) {
+          setToken(newToken)
+          apiService.setToken(newToken)
+          localStorage.setItem('auth_token', newToken)
+          console.log('Token guardado en estado y localStorage')
+
+          // Solo guardar usuario si existe y es válido
+          if (userData && typeof userData === 'object') {
+            setUser(userData)
+            localStorage.setItem('auth_user', JSON.stringify(userData))
+          } else {
+            // Si no hay datos de usuario, limpiar el localStorage pero mantener el token
+            localStorage.removeItem('auth_user')
+            setUser(null)
+          }
+
+          // Forzar actualización del estado
+          console.log('Estado actualizado, isAuthenticated debería ser:', !!newToken)
+        } else {
+          throw new Error('No se recibió token del servidor')
+        }
+      } else {
+        throw new Error('Respuesta inválida del servidor')
       }
     } catch (error) {
+      console.error('Error en login:', error)
+      // Limpiar localStorage en caso de error
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('auth_user')
       throw error
     }
   }
@@ -55,6 +110,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem('auth_user')
   }
 
+  const isAuthenticated = !!token
+
+  // Debug: Log cuando cambia el estado de autenticación
+  useEffect(() => {
+    console.log('AuthContext - Token:', token ? 'Presente' : 'Ausente')
+    console.log('AuthContext - isAuthenticated:', isAuthenticated)
+  }, [token, isAuthenticated])
+
   return (
     <AuthContext.Provider
       value={{
@@ -62,7 +125,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         token,
         login,
         logout,
-        isAuthenticated: !!user && !!token,
+        isAuthenticated,
         isLoading,
       }}
     >

@@ -1,0 +1,194 @@
+#!/bin/bash
+
+### CONFIGURACIÓN PERSONALIZABLE ###
+DOMAIN="unamad.org"
+ORG="unamad"
+ADMINPW="admin123"
+IPDATA="192.168.127.133"
+PORT="389"
+BASE_DN="dc=$(echo $DOMAIN | sed 's/\./,dc=/g')"
+####################################
+
+echo "==> Preconfigurando slapd mediante debconf..."
+
+# 1. Configurar dominio
+echo "slapd slapd/domain string $DOMAIN" | sudo debconf-set-selections
+
+# 2. Configurar organización
+echo "slapd shared/organization string $ORG" | sudo debconf-set-selections
+
+# 3. Configurar contraseña admin
+echo "slapd slapd/internal_adminpw password $ADMINPW" | sudo debconf-set-selections
+echo "slapd slapd/internal_adminpw_again password $ADMINPW" | sudo debconf-set-selections
+echo "slapd slapd/password1 password $ADMINPW" | sudo debconf-set-selections
+echo "slapd slapd/password2 password $ADMINPW" | sudo debconf-set-selections
+
+# 4. No migrar BD vieja
+echo "slapd slapd/move_old_database boolean true" | sudo debconf-set-selections
+
+# 5. No borrar BD al purgar
+echo "slapd slapd/purge_database boolean false" | sudo debconf-set-selections
+
+# 6. NO omitir configuración
+echo "slapd slapd/no_configuration boolean false" | sudo debconf-set-selections
+
+echo "==> Instalando slapd"
+sudo DEBIAN_FRONTEND=noninteractive apt install -y slapd ldap-utils
+
+echo "==> Reiniciando slapd..."
+sudo systemctl restart slapd
+
+echo "==> Verificando configuración final:"
+grep -R "olcSuffix" /etc/ldap/slapd.d/
+grep -R "olcRootPW" /etc/ldap/slapd.d/
+
+echo "==> Configurando /etc/ldap/ldap.conf"
+
+sudo bash -c "cat > /etc/ldap/ldap.conf" <<EOF
+BASE    $BASE_DN
+URI     ldap://$IPDATA:$PORT
+
+TLS_CACERT      /etc/ssl/certs/ca-certificates.crt
+EOF
+
+echo "==> Corrigiendo /etc/nsswitch.conf"
+
+sudo bash -c "cat > /etc/nsswitch.conf" <<EOF
+passwd:         files ldap
+group:          files ldap
+shadow:         files ldap
+gshadow:        files ldap
+
+hosts:          files mdns4_minimal [NOTFOUND=return] dns
+networks:       files
+
+protocols:      db files
+services:       db files
+ethers:         db files
+rpc:            db files
+
+netgroup:       files
+automount:      files
+EOF
+
+echo "===> Instalando phpldapadmin"
+sudo apt install -y phpldapadmin
+
+sudo bash -c "cat > /etc/phpldapadmin/config.php" <<EOF
+<?php
+
+// Configuración para PHP LDAP Admin
+\$config->custom->appearance['friendly_attrs'] = array(
+    'facsimileTelephoneNumber' => 'Fax',
+    'gid'                      => 'Group',
+    'mail'                     => 'Email',
+    'telephoneNumber'          => 'Telephone',
+    'uid'                      => 'User Name',
+    'userPassword'             => 'Password'
+);
+
+\$servers = new Datastore();
+\$servers->newServer('ldap_pla');
+
+// Nombre visible en phpLDAPadmin
+\$servers->setValue('server','name','UNAMAD LDAP Server');
+
+// IP del servidor LDAP (con la variable \$IPDATA de Bash)
+\$servers->setValue('server','host','$IPDATA');
+
+// Base DN (con la variable \$DOMAIN de Bash)
+\$servers->setValue('server','base',array('dc=$(echo $DOMAIN | sed "s/\./,dc=/g")'));
+
+// Tipo de login
+\$servers->setValue('login','auth_type','session');
+
+// Usuario administrador (con la variable \$ADMINPW de Bash)
+\$servers->setValue('login','bind_id','cn=admin,dc=$(echo $DOMAIN | sed "s/\./,dc=/g")');
+
+// Si quieres autologin, descomenta:
+// \$servers->setValue('login','bind_pass','$ADMINPW');
+
+\$config->custom->session['reCAPTCHA-enable'] = false;
+
+?>
+EOF
+
+echo "Configurando pam"
+
+sudo tee /usr/share/pam-configs/mkhomedir > /dev/null <<EOF
+Name: Create home directory on login
+Default: yes
+Priority: 900
+Session-Type: Additional
+Session:
+        required                        pam_mkhomedir.so umask=0022 skel=/etc/skel
+EOF
+
+echo "configurando defects uses"
+
+sudo tee /etc/pam.d/common-account > /dev/null <<EOF
+#
+# /etc/pam.d/common-account - authorization settings common to all services
+#
+# This file is included from other service-specific PAM config files,
+# and should contain a list of the authorization modules that define
+# the central access policy for use on the system.  The default is to
+# only deny service to users whose accounts are expired in /etc/shadow.
+#
+# As of pam 1.0.1-6, this file is managed by pam-auth-update by default.
+# To take advantage of this, it is recommended that you configure any
+# local modules either before or after the default block, and use
+# pam-auth-update to manage selection of other modules.  See
+# pam-auth-update(8) for details.
+#
+
+# here are the per-package modules (the "Primary" block)
+account [success=1 new_authtok_reqd=done default=ignore]        pam_unix.so
+# here's the fallback if no module succeeds
+account requisite                       pam_deny.so
+# prime the stack with a positive return value if there isn't one already;
+# this avoids us returning an error just because nothing sets a success code
+# since the modules above will each just jump around
+account required                        pam_permit.so
+# and here are more per-package modules (the "Additional" block)
+account sufficient                      pam_localuser.so
+account [default=bad success=ok user_unknown=ignore]    pam_sss.so
+# end of pam-auth-update config
+account required pam_unix.so
+EOF
+
+sudo tee /etc/pam.d/common-session > /dev/null <<EOF
+# at the start and end of interactive sessions.
+#
+# As of pam 1.0.1-6, this file is managed by pam-auth-update by default.
+# To take advantage of this, it is recommended that you configure any
+# local modules either before or after the default block, and use
+# pam-auth-update to manage selection of other modules.  See
+# pam-auth-update(8) for details.
+
+# here are the per-package modules (the "Primary" block)
+session [default=1]                     pam_permit.so
+# here's the fallback if no module succeeds
+session requisite                       pam_deny.so
+# prime the stack with a positive return value if there isn't one already;
+# this avoids us returning an error just because nothing sets a success code
+# since the modules above will each just jump around
+session required                        pam_permit.so
+# The pam_umask module will set the umask according to the system default in
+# /etc/login.defs and user settings, solving the problem of different
+# umask settings with different shells, display managers, remote sessions etc.
+# See "man pam_umask".
+session optional                        pam_umask.so
+# and here are more per-package modules (the "Additional" block)
+session required        pam_unix.so
+session optional                        pam_sss.so
+session optional        pam_systemd.so
+# end of pam-auth-update config
+session require pam_limits.so
+EOF
+
+echo "==> SERVIDOR LDAP INSTALADO CORRECTAMENTE"
+echo "Dominio LDAP: $BASE_DN"
+echo "Contraseña admin: $ADMINPW"
+echo "http://$IPDATA/phpldapadmin/"
+

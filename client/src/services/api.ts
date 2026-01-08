@@ -14,15 +14,25 @@ class ApiService {
   constructor(baseURL: string) {
     this.baseURL = baseURL
     // Recuperar token del localStorage si existe
-    this.token = localStorage.getItem('auth_token')
+    const savedToken = localStorage.getItem('auth_token')
+    if (savedToken && savedToken !== 'undefined' && savedToken !== 'null') {
+      this.token = savedToken
+      console.log('ApiService - Token recuperado del localStorage')
+    } else {
+      this.token = null
+      console.log('ApiService - No hay token guardado')
+    }
   }
 
   setToken(token: string | null) {
+    console.log('ApiService - setToken llamado con:', token ? 'Token presente' : 'null')
     this.token = token
-    if (token) {
+    if (token && token !== 'undefined' && token !== 'null') {
       localStorage.setItem('auth_token', token)
+      console.log('ApiService - Token guardado en localStorage')
     } else {
       localStorage.removeItem('auth_token')
+      console.log('ApiService - Token eliminado del localStorage')
     }
   }
 
@@ -32,13 +42,22 @@ class ApiService {
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`
     
+    console.log('API Request:', {
+      method: options.method || 'GET',
+      url,
+      hasToken: !!this.token
+    })
+    
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...options.headers as Record<string, string>,
     }
 
     if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`
+      headers['Authorization'] = `bearer ${this.token}`
+      console.log('API Request - Token incluido en headers:', this.token.substring(0, 20) + '...')
+    } else {
+      console.warn('API Request - NO HAY TOKEN disponible')
     }
 
     try {
@@ -47,15 +66,22 @@ class ApiService {
         headers,
       })
 
-      const data = await response.json()
-      
+      console.log('API Response status:', response.status, response.statusText)
+
       if (!response.ok) {
-        throw new Error(data.message || 'Error en la petición')
+        const errorData = await response.json().catch(() => ({ message: 'Error desconocido' }))
+        console.error('API Error Response:', errorData)
+        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`)
       }
 
+      const data = await response.json()
+      console.log('API Response data:', data)
       return data
-    } catch (error) {
+    } catch (error: any) {
       console.error('API Error:', error)
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error('No se pudo conectar con el servidor. Verifica que el backend esté corriendo en http://localhost:4000')
+      }
       throw error
     }
   }
@@ -82,7 +108,13 @@ class ApiService {
 
   // Repository endpoints
   async getAllRepositories() {
-    return this.request<any[]>('/repos/all', {
+    return this.request<any[]>('/repositorios/', {
+      method: 'GET',
+    })
+  }
+
+  async getMyRepositories() {
+    return this.request<any[]>('/repositorios/', {
       method: 'GET',
     })
   }
@@ -96,22 +128,23 @@ class ApiService {
     orgdata: string
     contrarepo: string
   }) {
-    return this.request<any>('/repos/create', {
+    console.log('Enviando datos al backend:', data)
+    return this.request<any>('/repositorios/create', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
   async getRepositoryById(id: number) {
-    return this.request<any>(`/repos/${id}`, {
+    return this.request<any>(`/repositorios/${id}`, {
       method: 'GET',
     })
   }
 
   async requestJoinRepository(repositoryId: number, password: string) {
-    return this.request<any>('/repos/join', {
+    return this.request<any>('/repositorios/addteam', {
       method: 'POST',
-      body: JSON.stringify({ repositoryId, password }),
+      body: JSON.stringify({ idRepositorio: repositoryId, contra: password }),
     })
   }
 
@@ -173,6 +206,39 @@ class ApiService {
       const a = document.createElement('a');
       a.href = downloadUrl;
       a.download = `install_repo_${repositoryId}.sh`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Download Error:', error);
+      throw error;
+    }
+  }
+
+  async downloadScriptFile(repositoryId: number, fileName: string) {
+    const url = `${this.baseURL}/installer/${repositoryId}/${fileName}`;
+    const headers: HeadersInit = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error al descargar ${fileName}`);
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       a.remove();

@@ -1,0 +1,87 @@
+#!/bin/bash
+
+### CONFIGURACIÓN ###
+DOMAIN="unamad.org"
+ORG="unamad"
+LDAP_SERVER_IP="192.168.127.133"
+LDAP_PORT="389"
+BASE_DN="dc=$(echo $DOMAIN | sed 's/\./,dc=/g')"
+ADMIN_DN="cn=admin,$BASE_DN"
+ADMIN_PW="admin123"
+#####################
+
+echo "==> Configurando cliente LDAP"
+
+echo "==> Preconfigurando debconf (sin ventanas)..."
+
+# URI del servidor LDAP
+echo "ldap-auth-config ldap-auth-config/ldapns/ldap-server string ldap://$LDAP_SERVER_IP:$LDAP_PORT" | sudo debconf-set-selections
+
+# Base DN
+echo "ldap-auth-config ldap-auth-config/ldapns/base-dn string $BASE_DN" | sudo debconf-set-selections
+
+# Versión LDAP
+echo "ldap-auth-config ldap-auth-config/ldapns/ldap_version select 3" | sudo debconf-set-selections
+
+# Cuenta admin para consultas
+echo "ldap-auth-config ldap-auth-config/rootbinddn string $ADMIN_DN" | sudo debconf-set-selections
+
+# Contraseña admin
+echo "ldap-auth-config ldap-auth-config/rootbindpw password $ADMIN_PW" | sudo debconf-set-selections
+echo "ldap-auth-config ldap-auth-config/rootbindpw-again password $ADMIN_PW" | sudo debconf-set-selections
+
+# No usar TLS (como en tu lab con NAT)
+echo "ldap-auth-config ldap-auth-config/ldapns/ldap_start_tls boolean false" | sudo debconf-set-selections
+
+# Permitir usuarios LDAP en sudo/login
+echo "libpam-runtime libpam-runtime/profiles multiselect unix, ldap, mkhomedir" | sudo debconf-set-selections
+
+echo "==> Instalando paquetes cliente LDAP..."
+sudo DEBIAN_FRONTEND=noninteractive apt install -y \
+    libnss-ldap \
+    libpam-ldap \
+    ldap-utils \
+    nscd
+
+echo "==> Configurando /etc/ldap/ldap.conf..."
+
+sudo bash -c "cat > /etc/ldap/ldap.conf" <<EOF
+BASE    $BASE_DN
+URI     ldap://$LDAP_SERVER_IP:$LDAP_PORT
+TLS_CACERT /etc/ssl/certs/ca-certificates.crt
+EOF
+
+echo "==> Configurando NSS (usuarios y grupos LDAP)..."
+
+sudo bash -c "cat > /etc/nsswitch.conf" <<EOF
+passwd:         files ldap
+group:          files ldap
+shadow:         files ldap
+gshadow:        files
+
+hosts:          files dns
+networks:       files
+
+protocols:      db files
+services:       db files
+ethers:         db files
+rpc:            db files
+
+netgroup:       nis
+automount:      files
+EOF
+
+echo "==> Habilitando creación automática de HOME..."
+sudo pam-auth-update --enable mkhomedir
+
+echo "==> Reiniciando servicios..."
+sudo systemctl restart nscd
+
+echo ""
+echo "==> CLIENTE LDAP CONFIGURADO"
+echo "Servidor LDAP: $LDAP_SERVER_IP"
+echo "Base DN: $BASE_DN"
+echo ""
+echo "Prueba con:"
+echo "  getent passwd"
+echo "  id usuario_ldap"

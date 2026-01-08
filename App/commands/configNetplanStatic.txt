@@ -1,0 +1,42 @@
+#!/bin/bash
+
+### CONFIGURACIÓN PERSONALIZABLE ###
+IPDATA="10.0.3.15/24"
+GATEWAY="10.0.3.1"
+PORT="389"
+NET_IFACE="enp0s3"
+
+####################################
+echo "Escribiendo ruta estatica"
+
+sudo tee /etc/netplan/01-netcfg.yaml > /dev/null <<EOF
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    $NET_IFACE:
+      dhcp4: no
+      addresses:
+        - $IPDATA
+      routes:
+        - to: default
+          via: $GATEWAY
+      nameservers:
+        addresses:
+          - 8.8.8.8
+          - 1.1.1.1
+EOF
+
+echo "Actualizando permisos"
+
+sudo chmod 600  /etc/netplan/01-netcfg.yaml
+sudo chmod 600 /etc/netplan/01-network-manager-all.yaml
+
+echo "Actualizando netplan"
+sudo netplan apply
+
+
+echo "Actualizando puertos"
+sudo ufw allow 389/tcp
+sudo ufw allow 636/tcp
+

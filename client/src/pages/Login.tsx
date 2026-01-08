@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import './Login.css'
@@ -9,7 +9,7 @@ const Login = () => {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [showRegister, setShowRegister] = useState(false)
-  
+
   // Datos de registro
   const [registerData, setRegisterData] = useState({
     nombrecompleto: '',
@@ -18,8 +18,17 @@ const Login = () => {
     contra: ''
   })
 
-  const { login } = useAuth()
+  const { login, isAuthenticated, isLoading: authLoading } = useAuth()
   const navigate = useNavigate()
+
+  // Redirigir cuando el usuario se autentique
+  useEffect(() => {
+    console.log('Login useEffect - isAuthenticated:', isAuthenticated, 'authLoading:', authLoading)
+    if (!authLoading && isAuthenticated) {
+      console.log('Redirigiendo a dashboard...')
+      navigate('/dashboard', { replace: true })
+    }
+  }, [isAuthenticated, authLoading, navigate])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -28,10 +37,20 @@ const Login = () => {
 
     try {
       await login(usuario, password)
-      navigate('/')
+      // Esperar un momento para que el estado se actualice
+      // Luego verificar si está autenticado y redirigir
+      setTimeout(() => {
+        const token = localStorage.getItem('auth_token')
+        if (token && token !== 'undefined' && token !== 'null') {
+          console.log('Token encontrado, redirigiendo...')
+          navigate('/', { replace: true })
+        } else {
+          console.log('No se encontró token válido')
+        }
+        setIsLoading(false)
+      }, 100)
     } catch (err: any) {
       setError(err.message || 'Error al iniciar sesión')
-    } finally {
       setIsLoading(false)
     }
   }
@@ -44,7 +63,7 @@ const Login = () => {
     try {
       const { apiService } = await import('../services/api')
       const response = await apiService.createAccount(registerData)
-      
+
       if (response.data) {
         // Después de crear cuenta, hacer login automático
         await login(registerData.correo, registerData.contra)

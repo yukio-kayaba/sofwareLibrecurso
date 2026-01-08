@@ -314,13 +314,22 @@ export const getUserRepositoryPermissions = (
 }
 
 export const getUserJoinedRepositories = (userId: string): (Repository & { permissions: UserPermissions })[] => {
-  const data = getData()
-  return data.repositoryUsers
-    .filter(ru => ru.userId === userId && ru.enabled)
-    .map(ru => {
-      const repo = data.repositories.find(r => r.id === ru.repositoryId)
-      if (!repo) throw new Error(`Repositorio ${ru.repositoryId} no encontrado`)
-      return { ...repo, permissions: ru.permissions }
-    })
+  try {
+    const data = getData()
+    return data.repositoryUsers
+      .filter(ru => ru.userId === userId && ru.enabled)
+      .map(ru => {
+        const repo = data.repositories.find(r => r.id === ru.repositoryId)
+        if (!repo) {
+          console.warn(`Repositorio ${ru.repositoryId} no encontrado`)
+          return null
+        }
+        return { ...repo, permissions: ru.permissions }
+      })
+      .filter((repo): repo is Repository & { permissions: UserPermissions } => repo !== null)
+  } catch (error) {
+    console.error('Error en getUserJoinedRepositories:', error)
+    return []
+  }
 }
 

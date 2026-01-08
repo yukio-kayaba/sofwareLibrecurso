@@ -13,5 +13,5 @@ export async function initBD(){
       user: DB_USER,
     };
 
-    await getConexion("mysql", conexion);
+    await getConexion("pg", conexion);
 }

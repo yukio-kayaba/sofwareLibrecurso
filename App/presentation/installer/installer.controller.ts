@@ -9,11 +9,15 @@ export class InstallerController {
     public  generate = async (req: Request, res: Response) => {
         try {
             const { idRepo } = req.params;
-            const idUser = (req as any).user?.id; // Asumiendo middleware de auth que popola req.user
+            
+            if (!req.authpayload) {
+                throw CustomError.unauthorized("Usuario no autenticado");
+            }
+            
+            const idUser = req.authpayload.idusuario || req.authpayload.id;
 
             if (!idUser) {
-                // Fallback por si el middleware falla o no se usa
-                throw CustomError.unauthorized("Usuario no autenticado");
+                throw CustomError.unauthorized("No se pudo obtener el ID del usuario");
             }
 
             const useCase = new GenerateInstallerUseCase();

@@ -19,7 +19,12 @@ export class ReposController{
             return;
         }
         const repositorio = new ReposGetAllUseCase();
-        repositorio.create(createDto,req.authpayload.id).then(data =>{
+        const idUser = req.authpayload.idusuario || req.authpayload.id;
+        if (!idUser) {
+            CustomResponse.badRequest({res,error:"No se pudo obtener el ID del usuario"});
+            return;
+        }
+        repositorio.create(createDto, idUser).then(data =>{
             CustomResponse.success({res,data});
         }).catch(error =>{
             CustomResponse.badRequest({res,error})
@@ -49,8 +54,13 @@ export class ReposController{
         }
 
         const reposId = new ReposGetAllUseCase();
-        
-        reposId.getBiId(req.authpayload.id,idRepos).then(data =>{
+        const idUser = req.authpayload.idusuario || req.authpayload.id;
+        if (!idUser) {
+            CustomResponse.badRequest({res,error:"No se pudo obtener el ID del usuario"});
+            return;
+        }
+        console.log(` idUser: ${idUser} - idRepo : ${idRepos} `);
+        reposId.getBiId(idUser,idRepos).then(data =>{
             CustomResponse.success({res,data});
         }).catch(error=>{
             CustomResponse.badRequest({res,error});
@@ -78,9 +88,33 @@ export class ReposController{
         }
 
         const reposAdd = new ReposGetAllUseCase();
-
-        reposAdd.unirseRepo(req.authpayload.id,idRepositorio,body.contra).then(data =>{
+        const idUser = req.authpayload.idusuario || req.authpayload.id;
+        if (!idUser) {
+            CustomResponse.badRequest({res,error:"No se pudo obtener el ID del usuario"});
+            return;
+        }
+        reposAdd.unirseRepo(idUser,idRepositorio,body.contra).then(data =>{
             CustomResponse.success({res,data})
+        }).catch(error =>{
+            CustomResponse.badRequest({res,error})
+        })
+    }
+
+    getMyRepositories = (req:Request,res:Response)=>{
+        if(req.authpayload === undefined){
+            CustomResponse.badRequest({res,error:"No tienes permisos"});
+            return
+        }
+
+        const idUser = req.authpayload.idusuario || req.authpayload.id;
+        if (!idUser) {
+            CustomResponse.badRequest({res,error:"No se pudo obtener el ID del usuario"});
+            return;
+        }
+        
+        const repos = new ReposGetAllUseCase();
+        repos.miRepositori(idUser).then(data=>{
+            CustomResponse.success({res,data})  
         }).catch(error =>{
             CustomResponse.badRequest({res,error})
         })

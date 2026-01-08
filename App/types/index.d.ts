@@ -1,5 +1,6 @@
 interface Authpayload {
-  id: number;
+  idusuario: number;
+  id?: number; // Para compatibilidad
   exp?: number;
   [key: string]: any;
 }

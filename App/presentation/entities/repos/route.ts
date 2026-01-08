@@ -9,9 +9,11 @@ export class ReposRoutes{
 
         router.get("/", reposController.getall);
 
+        router.get("/my", reposController.getMyRepositories);
+
         router.get("/:id",reposController.getById);
 
-        router.post("/",reposController.create);
+        router.post("/create",reposController.create);
 
         router.post("/addteam", reposController.unirseGroup);
 

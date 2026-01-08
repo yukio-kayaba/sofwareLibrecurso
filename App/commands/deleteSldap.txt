@@ -1,0 +1,28 @@
+#!/bin/bash
+
+echo "==> Deteniendo servicios de LDAP..."
+sudo systemctl stop slapd 2>/dev/null
+
+echo "==> Revisando si APT está bloqueado..."
+while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+    echo "⚠️  APT está siendo usado por otro proceso. Esperando 5 segundos..."
+    sleep 5
+done
+
+echo "==> Deteniendo procesos que bloquean (si existen)..."
+sudo killall -q apt apt-get dpkg 2>/dev/null
+
+echo "==> Reconfigurando dpkg si quedó a medias..."
+sudo dpkg --configure -a 2>/dev/null
+
+echo "==> Eliminando paquetes slapd y ldap-utils..."
+sudo apt-get purge -y slapd ldap-utils
+
+echo "==> Eliminando directorios restantes..."
+sudo rm -rf /etc/ldap/ /var/lib/ldap/
+
+echo "==> Eliminando dependencias no usadas..."
+sudo apt-get autoremove -y
+
+echo "==> LIMPIEZA COMPLETA. LDAP ha sido eliminado correctamente."
+

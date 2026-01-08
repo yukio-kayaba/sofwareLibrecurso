@@ -1,0 +1,46 @@
+#!/bin/bash
+set -e
+
+echo "==> DESINSTALACIÓN DE EMERGENCIA: CLIENTE LDAP"
+echo "============================================"
+
+echo "==> Deteniendo y deshabilitando nslcd..."
+sudo systemctl stop nslcd || true
+sudo systemctl disable nslcd || true
+
+echo "==> Revirtiendo NSS (quitando LDAP)..."
+
+sudo sed -i 's/^passwd:.*/passwd:         files/' /etc/nsswitch.conf
+sudo sed -i 's/^group:.*/group:          files/' /etc/nsswitch.conf
+sudo sed -i 's/^shadow:.*/shadow:         files/' /etc/nsswitch.conf
+
+echo "==> Revirtiendo PAM (quitando mkhomedir LDAP)..."
+sudo pam-auth-update --disable mkhomedir || true
+
+echo "==> Eliminando paquetes LDAP cliente..."
+sudo DEBIAN_FRONTEND=noninteractive apt purge -y \
+  libnss-ldapd \
+  libpam-ldapd \
+  nslcd \
+  ldap-utils
+
+echo "==> Eliminando archivos de configuración..."
+
+sudo rm -f /etc/nslcd.conf
+sudo rm -f /etc/ldap.conf
+sudo rm -rf /etc/ldap
+
+echo "==> Limpiando dependencias..."
+sudo apt autoremove -y
+sudo apt autoclean -y
+
+echo "==> Reiniciando servicios locales..."
+sudo systemctl restart systemd-logind || true
+
+echo ""
+echo "==> CLIENTE LDAP ELIMINADO CORRECTAMENTE"
+echo "El sistema vuelve a usar SOLO usuarios locales"
+echo ""
+echo "Verificación:"
+echo "  getent passwd"
+echo "  id usuario_local"

@@ -1,33 +1,40 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import {
-  getRepositoryById,
-  getRepositoryUsers,
-  toggleUserPermission,
-  removeUserFromRepository,
-  updateUserPermissions
-} from '../../services/dataService'
 import { apiService } from '../../services/api'
-import { Repository, UserPermissions } from '../../types'
 import './RepositoryDetail.css'
 
 const RepositoryDetail = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const [repository, setRepository] = useState<Repository | null>(null)
-  const [repositoryUsers, setRepositoryUsers] = useState<ReturnType<typeof getRepositoryUsers>>([])
+  const [repository, setRepository] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (id) {
-      const repo = getRepositoryById(id)
-      if (repo) {
-        setRepository(repo)
-        const users = getRepositoryUsers(id)
-        setRepositoryUsers(users)
+    const loadRepository = async () => {
+      if (id) {
+        try {
+          setLoading(true)
+          setError(null)
+          const response = await apiService.getRepositoryById(Number(id))
+          
+          if (response.status === 'success' && response.data) {
+            // response.data puede ser un array, tomar el primer elemento
+            const repoData = Array.isArray(response.data) ? response.data[0] : response.data
+            setRepository(repoData)
+          } else {
+            setError('No se pudo cargar la información del repositorio')
+          }
+        } catch (error: any) {
+          console.error('Error al cargar repositorio:', error)
+          setError(error?.message || 'Error al cargar el repositorio')
+        } finally {
+          setLoading(false)
+        }
       }
-      setLoading(false)
     }
+
+    loadRepository()
   }, [id])
 
   const handleDownloadInstaller = async () => {
@@ -41,63 +48,34 @@ const RepositoryDetail = () => {
     }
   }
 
-  const handleTogglePermission = (userId: string, currentEnabled: boolean) => {
+  const handleDownloadFile = async (fileName: string) => {
     if (id) {
-      toggleUserPermission(id, userId, !currentEnabled)
-      const users = getRepositoryUsers(id)
-      setRepositoryUsers(users)
-    }
-  }
-
-  const handleToggleReadPermission = (userId: string, currentCanRead: boolean) => {
-    if (id) {
-      const repoUser = repositoryUsers.find(ru => ru.userId === userId)
-      if (repoUser && repoUser.enabled) {
-        updateUserPermissions(id, userId, {
-          ...repoUser.permissions,
-          canRead: !currentCanRead,
-          // Si se desactiva lectura, también desactivar descarga
-          canDownload: !currentCanRead ? false : repoUser.permissions.canDownload
-        })
-        const users = getRepositoryUsers(id)
-        setRepositoryUsers(users)
+      try {
+        await apiService.downloadScriptFile(Number(id), fileName);
+      } catch (error) {
+        alert(`Error al descargar ${fileName}`);
+        console.error(error);
       }
-    }
-  }
-
-  const handleToggleDownloadPermission = (userId: string, currentCanDownload: boolean) => {
-    if (id) {
-      const repoUser = repositoryUsers.find(ru => ru.userId === userId)
-      if (repoUser && repoUser.enabled && repoUser.permissions.canRead) {
-        updateUserPermissions(id, userId, {
-          ...repoUser.permissions,
-          canDownload: !currentCanDownload
-        })
-        const users = getRepositoryUsers(id)
-        setRepositoryUsers(users)
-      }
-    }
-  }
-
-  const handleRemoveUser = (userId: string) => {
-    if (id && window.confirm('¿Estás seguro de que quieres eliminar este usuario del repositorio?')) {
-      removeUserFromRepository(id, userId)
-      const users = getRepositoryUsers(id)
-      setRepositoryUsers(users)
     }
   }
 
   if (loading) {
-    return <div className="loading">Cargando...</div>
+    return (
+      <div className="repository-detail">
+        <div className="loading">Cargando información del repositorio...</div>
+      </div>
+    )
   }
 
-  if (!repository) {
+  if (error || !repository) {
     return (
-      <div className="error-state">
-        <h2>Repositorio no encontrado</h2>
-        <button className="btn-primary" onClick={() => navigate('/admin')}>
-          Volver a Repositorios
-        </button>
+      <div className="repository-detail">
+        <div className="error-state">
+          <h2>{error || 'Repositorio no encontrado'}</h2>
+          <button className="btn-primary" onClick={() => navigate('/')}>
+            ← Volver a Mis Repositorios
+          </button>
+        </div>
       </div>
     )
   }
@@ -105,45 +83,85 @@ const RepositoryDetail = () => {
   return (
     <div className="repository-detail">
       <div className="detail-header">
-        <button className="back-button" onClick={() => navigate('/admin')}>
+        <button className="back-button" onClick={() => navigate('/')}>
           ← Volver
         </button>
         <div>
-          <h2 className="page-title">{repository.nombrerepo}</h2>
-          <p className="page-subtitle">Gestiona los usuarios de este repositorio</p>
+          <h2 className="page-title">{repository.nombrerepo || repository.name || 'Repositorio'}</h2>
+          <p className="page-subtitle">Información y archivos del repositorio</p>
         </div>
-        <button className="btn-primary download-installer-btn" style={{ marginLeft: 'auto' }} onClick={handleDownloadInstaller}>
-          ⬇️ Descargar Instalador
-        </button>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px' }}>
+          <button className="btn-primary" onClick={handleDownloadInstaller}>
+            ⬇️ Instalador Completo
+          </button>
+        </div>
       </div>
 
       <div className="repository-info-card">
         <h3>Información del Repositorio</h3>
         <div className="info-grid">
-          <div className="info-item">
-            <span className="info-label">Dominio</span>
-            <span className="info-value">{repository.dominio}</span>
-          </div>
-          <div className="info-item">
-            <span className="info-label">Dirección IP</span>
-            <span className="info-value">{repository.ipdata}</span>
-          </div>
-          <div className="info-item">
-            <span className="info-label">Puerto</span>
-            <span className="info-value">{repository.portdata}</span>
-          </div>
-          <div className="info-item">
-            <span className="info-label">Organización</span>
-            <span className="info-value">{repository.orgdata}</span>
-          </div>
-          <div className="info-item">
-            <span className="info-label">Fecha de Creación</span>
-            <span className="info-value">{new Date(repository.fechacreacion).toLocaleDateString()}</span>
-          </div>
+          {repository.descripcion && (
+            <div className="info-item">
+              <span className="info-label">Descripción</span>
+              <span className="info-value">{repository.descripcion}</span>
+            </div>
+          )}
+          {repository.dominio && (
+            <div className="info-item">
+              <span className="info-label">Dominio</span>
+              <span className="info-value">{repository.dominio}</span>
+            </div>
+          )}
+          {repository.ipdata && (
+            <div className="info-item">
+              <span className="info-label">Dirección IP</span>
+              <span className="info-value">{repository.ipdata}</span>
+            </div>
+          )}
+          {repository.portdata && (
+            <div className="info-item">
+              <span className="info-label">Puerto</span>
+              <span className="info-value">{repository.portdata}</span>
+            </div>
+          )}
+          {repository.orgdata && (
+            <div className="info-item">
+              <span className="info-label">Organización</span>
+              <span className="info-value">{repository.orgdata}</span>
+            </div>
+          )}
+          {repository.fechacreacion && (
+            <div className="info-item">
+              <span className="info-label">Fecha de Creación</span>
+              <span className="info-value">{new Date(repository.fechacreacion).toLocaleDateString()}</span>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="users-section">
+      <div className="downloads-section" style={{ marginTop: '20px' }}>
+        <div className="section-header">
+          <h3>Descargar Archivos de Configuración</h3>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px', marginTop: '15px' }}>
+          <button 
+            className="btn-primary" 
+            onClick={() => handleDownloadFile('netplan.sh')}
+            style={{ padding: '15px', textAlign: 'center' }}
+          >
+            ⬇️ Descargar netplan.sh
+          </button>
+          <button 
+            className="btn-primary" 
+            onClick={() => handleDownloadFile('lsap.sh')}
+            style={{ padding: '15px', textAlign: 'center' }}
+          >
+            ⬇️ Descargar lsap.sh
+          </button>
+        </div>
+      </div>
+
+      <div className="users-section" style={{ marginTop: '20px', display: 'none' }}>
         <div className="section-header">
           <h3>Usuarios del Repositorio</h3>
           <span className="user-count">{repositoryUsers.length} usuario{repositoryUsers.length !== 1 ? 's' : ''}</span>

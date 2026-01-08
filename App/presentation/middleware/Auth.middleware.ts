@@ -23,22 +23,31 @@ export class AuthMiddleware {
 
   static request = (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.headers["authorization"];
+    
     if (authHeader === undefined || typeof authHeader !== "string") {
       AuthMiddleware.handleAuthError(res);
       return;
     }
     const partes = authHeader.split(" ");
-    console.log(partes);
-    if (partes.length !== 2 || partes[0] !== "bearer") {
+    
+    if (partes.length !== 2 || partes[0].toLowerCase() !== "bearer") {
+      console.log('AuthMiddleware - Formato incorrecto. Partes:', partes);
       AuthMiddleware.handleAuthError(res);
       return;
     }
 
     const [, token] = partes;
+    
+    if (!token || token.trim() === '') {
+      AuthMiddleware.handleAuthError(res);
+      return;
+    }
+
     try {
       const decodeAuthpayload = JWTadapter.verifyToken({
         token,
       }) as Authpayload;
+
 
       const tiempoActual = Math.floor(Date.now() / 1000);
       if (!decodeAuthpayload.exp) {
@@ -48,16 +57,12 @@ export class AuthMiddleware {
       req.authpayload = decodeAuthpayload;
       req.tiempo = tiempoRestante;
 
-      console.log("tiempo : " + req.tiempo + " cod : " + req.authpayload);
-
       if (req.authpayload === undefined || req.tiempo < 0) {
         return AuthMiddleware.handleAuthError(res);
       }
-
       next();
     } catch (error) {
-      console.log(error);
-      if (error instanceof JsonWebTokenError ) {
+      if (error instanceof JsonWebTokenError) {
         AuthMiddleware.handleAuthError(res);
         return;
       }
